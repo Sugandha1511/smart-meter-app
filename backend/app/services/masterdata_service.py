@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+import subprocess
+import sys
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Iterable
@@ -7,6 +10,51 @@ from typing import Any, Iterable
 from openpyxl import load_workbook
 
 from app.core.config import MASTERDATA_DIR
+
+CACHE_DIR = MASTERDATA_DIR / "cache"
+DCS_CACHE_FILE = CACHE_DIR / "dcs.json"
+CONSUMERS_CACHE_FILE = CACHE_DIR / "consumers.json"
+
+
+def _ensure_cache_built() -> None:
+    """
+    If the JSON cache is missing (first run after a fresh checkout), build it
+    on-demand so every subsequent call is instant. Safe to call repeatedly.
+    """
+    if DCS_CACHE_FILE.exists() and CONSUMERS_CACHE_FILE.exists():
+        return
+    script = Path(__file__).resolve().parents[2] / "scripts" / "build_master_cache.py"
+    if not script.exists():
+        return
+    try:
+        subprocess.run([sys.executable, str(script)], check=True)
+    except Exception:
+        # If cache build fails we fall back to streaming the Excel.
+        pass
+
+
+@lru_cache(maxsize=1)
+def _load_dcs_cache() -> dict | None:
+    _ensure_cache_built()
+    if not DCS_CACHE_FILE.exists():
+        return None
+    try:
+        with DCS_CACHE_FILE.open() as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
+@lru_cache(maxsize=1)
+def _load_consumers_cache() -> dict | None:
+    _ensure_cache_built()
+    if not CONSUMERS_CACHE_FILE.exists():
+        return None
+    try:
+        with CONSUMERS_CACHE_FILE.open() as f:
+            return json.load(f)
+    except Exception:
+        return None
 
 
 @lru_cache(maxsize=1)
@@ -134,8 +182,12 @@ def load_consumer_master_slice(limit: int = 50, offset: int = 0) -> list[dict[st
 def load_unique_dcs(limit: int = 500) -> list[str]:
     """
     Returns unique DC names from Column D.
-    Cached to avoid re-reading the Excel repeatedly.
+    Prefers the pre-built JSON cache; falls back to streaming the Excel.
     """
+    cached = _load_dcs_cache()
+    if cached and isinstance(cached.get("dcs"), list):
+        return list(cached["dcs"])[:limit]
+
     xlsx = _consumer_master_path()
     if not xlsx:
         return []
@@ -165,6 +217,10 @@ def load_unique_dcs(limit: int = 500) -> list[str]:
 @lru_cache(maxsize=1)
 def load_headers() -> list[str]:
     """Return Excel header row (row 1), normalized to strings."""
+    cached = _load_dcs_cache()
+    if cached and isinstance(cached.get("headers"), list):
+        return list(cached["headers"])
+
     xlsx = _consumer_master_path()
     if not xlsx:
         return []
@@ -183,9 +239,17 @@ def load_headers() -> list[str]:
 
 def get_full_consumer_row(ivrs: str) -> dict[str, Any] | None:
     """
-    Find the first row whose Column H (IVRS) matches `ivrs` and return a
-    dict of { header_name: value } using row 1 as headers.
+    Look up a consumer row by IVRS. O(1) via JSON cache;
+    falls back to a streaming Excel scan.
     """
+    target = str(ivrs).strip()
+    if not target:
+        return None
+
+    cached = _load_consumers_cache()
+    if cached is not None:
+        return cached.get(target)
+
     xlsx = _consumer_master_path()
     if not xlsx:
         return None
@@ -195,9 +259,6 @@ def get_full_consumer_row(ivrs: str) -> dict[str, Any] | None:
     sheet = workbook.active
 
     ivrs_col_idx = 8
-    target = str(ivrs).strip()
-    if not target:
-        return None
 
     for i, row in enumerate(sheet.iter_rows(values_only=True), start=1):
         if i == 1:
@@ -223,8 +284,22 @@ def get_full_consumer_row(ivrs: str) -> dict[str, Any] | None:
 
 def ivrs_belongs_to_dc(ivrs: str, dc_name: str) -> bool:
     """
-    Validates that the IVRS exists in Column H and its DC (Column D) matches dc_name exactly.
+    Validates that the IVRS exists and its DC matches.
+    O(1) via JSON cache; falls back to Excel streaming.
     """
+    target_ivrs = str(ivrs).strip()
+    target_dc = str(dc_name).strip()
+    if not target_ivrs or not target_dc:
+        return False
+
+    row = get_full_consumer_row(target_ivrs)
+    if row is not None:
+        row_dc = row.get("DC")
+        if isinstance(row_dc, str) and row_dc.strip() == target_dc:
+            return True
+        return False
+
+    # Fallback (shouldn't normally run once cache is built).
     xlsx = _consumer_master_path()
     if not xlsx:
         return False
@@ -234,22 +309,17 @@ def ivrs_belongs_to_dc(ivrs: str, dc_name: str) -> bool:
 
     dc_col_idx = 4
     ivrs_col_idx = 8
-    target_ivrs = str(ivrs).strip()
-    target_dc = str(dc_name).strip()
 
-    if not target_ivrs or not target_dc:
-        return False
-
-    for i, row in enumerate(sheet.iter_rows(values_only=True), start=1):
+    for i, sheet_row in enumerate(sheet.iter_rows(values_only=True), start=1):
         if i == 1:
             continue
 
-        ivrs_val = row[ivrs_col_idx - 1] if ivrs_col_idx - 1 < len(row) else None
+        ivrs_val = sheet_row[ivrs_col_idx - 1] if ivrs_col_idx - 1 < len(sheet_row) else None
         row_ivrs = str(ivrs_val).strip() if ivrs_val is not None else ""
         if row_ivrs != target_ivrs:
             continue
 
-        dc_val = row[dc_col_idx - 1] if dc_col_idx - 1 < len(row) else None
+        dc_val = sheet_row[dc_col_idx - 1] if dc_col_idx - 1 < len(sheet_row) else None
         row_dc = str(dc_val).strip() if dc_val is not None else ""
         return row_dc == target_dc
 

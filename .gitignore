@@ -17,6 +17,9 @@ frontend/dist/
 # Uploads (user-uploaded files; don't commit)
 backend/uploads/
 
+# Generated JSON cache (built from Excel at deploy time)
+backend/Masterdata/cache/consumers.json
+
 # Editors / OS
 .vscode/
 .idea/
