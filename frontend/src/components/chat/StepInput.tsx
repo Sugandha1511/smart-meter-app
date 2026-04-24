@@ -12,6 +12,7 @@ export default function StepInput({ step, onSubmit }: Props) {
 
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const normalizedValue = useMemo(() => {
     if (step.inputType === 'voice_text') {
@@ -164,23 +165,46 @@ export default function StepInput({ step, onSubmit }: Props) {
   if (step.inputType === 'photo' || step.inputType === 'video') {
     const isPhoto = step.inputType === 'photo';
     return (
-      <label className="btn primary full-width" style={{ textAlign: 'center', cursor: 'pointer' }}>
-        {isPhoto ? 'Take / choose photo' : 'Record / choose video'}
+      <div className="row">
+        <button
+          type="button"
+          className="btn primary full-width"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          {isPhoto ? 'Take / choose photo' : 'Record / choose video'}
+        </button>
+        {/* Visually hidden but focusable input — programmatically clicked above.
+            Using `display: none` on a file input is unreliable on iOS Safari,
+            so we use an off-screen visually-hidden style instead. */}
         <input
+          ref={fileInputRef}
           type="file"
           accept={isPhoto ? 'image/*' : 'video/*'}
           capture="environment"
-          style={{ display: 'none' }}
+          style={{
+            position: 'absolute',
+            width: 1,
+            height: 1,
+            padding: 0,
+            margin: -1,
+            overflow: 'hidden',
+            clip: 'rect(0 0 0 0)',
+            whiteSpace: 'nowrap',
+            border: 0,
+            opacity: 0,
+            pointerEvents: 'none'
+          }}
           onChange={(e) => {
             const file = e.target.files?.[0];
-            // Reset so the same file can be re-selected, and so no filename lingers.
+            // Reset so the same file can be re-selected and so the filename
+            // doesn't linger in the DOM.
             e.target.value = '';
             if (file) {
               onSubmit(file, 'file');
             }
           }}
         />
-      </label>
+      </div>
     );
   }
 

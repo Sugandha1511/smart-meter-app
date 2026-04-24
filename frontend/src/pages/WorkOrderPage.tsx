@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { AxiosError } from 'axios';
 import ChatHeader from '../components/chat/ChatHeader';
@@ -11,7 +11,7 @@ import {
   submitStepAnswer,
   submitWorkOrder
 } from '../services/workOrder.service';
-import { uploadMedia } from '../services/upload.service';
+import { maybeCompressImage, uploadMedia } from '../services/upload.service';
 import { getConsumerByIVRS } from '../services/masterdata.service';
 import { useWorkOrderStore } from '../store/workOrder.store';
 import { WorkOrderStep } from '../types/work-order';
@@ -103,6 +103,7 @@ function toDisplay(value: string | number | boolean | null | undefined): string 
 export default function WorkOrderPage() {
   const { id = '' } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { answers, setAnswer, setAnswers, reset } = useWorkOrderStore();
   const [messages, setMessages] = useState<Message[]>([]);
   const [extractionResult, setExtractionResult] = useState<{
@@ -117,6 +118,9 @@ export default function WorkOrderPage() {
   const [geo, setGeo] = useState<{ lat: number; lng: number } | null>(null);
   const [geoError, setGeoError] = useState<string | null>(null);
   const [installedAt] = useState<string>(() => new Date().toISOString());
+
+  const [uploading, setUploading] = useState(false);
+  const [uploadPct, setUploadPct] = useState(0);
 
   const workflowQuery = useQuery({
     queryKey: ['workflow', id],
@@ -147,35 +151,126 @@ export default function WorkOrderPage() {
   const handleAnswer = async (value: unknown, inputMode = 'text') => {
     if (!currentStep) return;
 
+    const isFile = value instanceof File;
+    const capturedStep = currentStep;
+    let statusMsgId: string | null = null;
+
     try {
       let finalValue = value;
-      if (value instanceof File) {
-        finalValue = await uploadMedia(value);
+      if (isFile) {
+        let file = value as File;
+        const originalSize = file.size;
+        statusMsgId = crypto.randomUUID();
+        setUploading(true);
+        setUploadPct(0);
+
+        const fmt = (n: number) => (n / 1024 / 1024).toFixed(1);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            sender: 'user',
+            text: `Selected ${file.name} (${fmt(originalSize)} MB)`
+          },
+          { id: statusMsgId!, sender: 'bot', text: 'Preparing file...' }
+        ]);
+
+        // Compress big photos before upload (videos pass through untouched).
+        if (file.type.startsWith('image/')) {
+          const compressed = await maybeCompressImage(file);
+          if (compressed !== file) {
+            file = compressed;
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === statusMsgId
+                  ? {
+                      ...m,
+                      text: `Compressed ${fmt(originalSize)} MB → ${fmt(file.size)} MB. Uploading...`
+                    }
+                  : m
+              )
+            );
+          }
+        }
+
+        finalValue = await uploadMedia(file, (pct) => {
+          const percent = Math.round(pct * 100);
+          setUploadPct(percent);
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === statusMsgId ? { ...m, text: `Uploading... ${percent}%` } : m
+            )
+          );
+        });
+
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === statusMsgId ? { ...m, text: 'Upload complete. Saving...' } : m
+          )
+        );
       }
 
       const response = await answerMutation.mutateAsync({
         workOrderId: id,
-        stepId: currentStep.id,
+        stepId: capturedStep.id,
         value: finalValue,
         inputMode
       });
 
-      setAnswer(currentStep.fieldKey, finalValue);
-      setMessages((prev) => [
-        ...prev,
-        { id: crypto.randomUUID(), sender: 'user', text: formatUserMessage(finalValue) },
-        { id: crypto.randomUUID(), sender: 'bot', text: response.bot_message }
-      ]);
+      setAnswer(capturedStep.fieldKey, finalValue);
 
-      await workflowQuery.refetch();
+      // Update the workflow query cache locally instead of refetching. The
+      // answer endpoint already tells us which step to show next, and we
+      // already have the full `steps` list in memory. This removes a full
+      // network round-trip per step, which was ~500–1000 ms on Render.
+      queryClient.setQueryData(['workflow', id], (old: any) => {
+        if (!old) return old;
+        const stepsList = (old.steps ?? []) as WorkOrderStep[];
+        const nextId: string = response.next_step_id ?? capturedStep.id;
+        const nextStep =
+          stepsList.find((s) => s.id === nextId) ??
+          (nextId === 'preview_submit'
+            ? { id: 'preview_submit', labelEn: 'Please review and submit.' }
+            : old.currentStep);
+        return {
+          ...old,
+          currentStep: nextStep,
+          answers: {
+            ...(old.answers ?? {}),
+            [capturedStep.fieldKey]: finalValue
+          }
+        };
+      });
+
+      setMessages((prev) => {
+        const base = statusMsgId ? prev.filter((m) => m.id !== statusMsgId) : prev;
+        return [
+          ...base,
+          ...(isFile
+            ? []
+            : [{ id: crypto.randomUUID(), sender: 'user' as const, text: formatUserMessage(finalValue) }]),
+          { id: crypto.randomUUID(), sender: 'bot' as const, text: response.bot_message }
+        ];
+      });
     } catch (e) {
       const msg = getApiErrorMessage(e);
-      setMessages((prev) => [
-        ...prev,
-        { id: crypto.randomUUID(), sender: 'bot', text: msg }
-      ]);
-      // Keep UI on same step on 422.
+      setMessages((prev) => {
+        const base = statusMsgId ? prev.filter((m) => m.id !== statusMsgId) : prev;
+        return [
+          ...base,
+          {
+            id: crypto.randomUUID(),
+            sender: 'bot' as const,
+            text: isFile ? `Upload failed: ${msg}` : msg
+          }
+        ];
+      });
+      // Only refetch on error — in case the server rejected the value and we
+      // need to re-read authoritative state (e.g. 422 on IVRS validation).
       await workflowQuery.refetch();
+    } finally {
+      setUploading(false);
+      setUploadPct(0);
     }
   };
 
@@ -596,7 +691,14 @@ export default function WorkOrderPage() {
         ) : null}
       </main>
       <footer className="input-bar">
-        {showPreview ? (
+        {uploading ? (
+          <div className="upload-progress">
+            <div className="upload-progress-label">Uploading... {uploadPct}%</div>
+            <div className="upload-progress-track">
+              <div className="upload-progress-fill" style={{ width: `${uploadPct}%` }} />
+            </div>
+          </div>
+        ) : showPreview ? (
           <div className="row">
             <button type="button" className="btn success" onClick={handleSubmit} disabled={submitMutation.isPending}>
               {submitMutation.isPending ? 'Submitting...' : 'Submit'}

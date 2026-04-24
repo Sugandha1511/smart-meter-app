@@ -29,8 +29,8 @@ export default function HomePage() {
   const hasStarted = messages.length > 0;
 
   const sendGreeting = () => {
-    if (!canSend) return;
     const userText = text.trim();
+    if (!userText) return;
     setText('');
     setNotice(null);
     setMessages([
@@ -42,6 +42,11 @@ export default function HomePage() {
       }
     ]);
     setShowOptions(true);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    sendGreeting();
   };
 
   const selectType = (opt: (typeof WORK_ORDER_OPTIONS)[number]) => {
@@ -117,7 +122,7 @@ export default function HomePage() {
       </main>
 
       <footer className="composer-bar">
-        <div className="composer">
+        <form className="composer" onSubmit={handleSubmit} action="#">
           <button type="button" className="icon-btn" aria-label="Location">
             <svg className="composer-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path
@@ -136,51 +141,35 @@ export default function HomePage() {
           <div className="composer-pill">
             <input
               className="composer-input"
+              type="text"
               placeholder="Type 'Hi' to begin"
               value={text}
               onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') sendGreeting();
-              }}
+              enterKeyHint="send"
+              inputMode="text"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="none"
+              spellCheck={false}
             />
-            <button type="button" className="icon-btn" aria-label="Camera" onClick={sendGreeting}>
+            {/* Real submit button — iOS Safari fires form submit reliably when
+                the virtual keyboard's Go/Send key is pressed, which the bare
+                onKeyDown=Enter handler does not. */}
+            <button
+              type="submit"
+              className="icon-btn composer-send"
+              aria-label="Send"
+              disabled={!canSend}
+            >
               <svg className="composer-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path
-                  d="M8 7l1.2-2h5.6L16 7h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h3Z"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M12 17a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                />
-              </svg>
-            </button>
-            <button type="button" className="icon-btn" aria-label="Mic" onClick={sendGreeting}>
-              <svg className="composer-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path
-                  d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3Z"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                />
-                <path
-                  d="M19 11a7 7 0 0 1-14 0"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                />
-                <path
-                  d="M12 18v3"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
+                  d="M3.4 20.6 21 12 3.4 3.4 3 10l12 2-12 2 .4 6.6Z"
+                  fill="currentColor"
                 />
               </svg>
             </button>
           </div>
-        </div>
+        </form>
       </footer>
     </div>
   );
