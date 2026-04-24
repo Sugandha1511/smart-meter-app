@@ -1,17 +1,24 @@
 """
-One-time / build-time script: reads the consumer master Excel and writes a fast
-JSON cache. In production (Render free tier) the FastAPI app loads this cache
-instead of parsing the 24 MB / 96k-row spreadsheet on every request.
+Build-time script: reads the consumer master Excel and writes a fast lookup
+cache next to the data files:
+
+    Masterdata/cache/dcs.json         # tiny — list of unique DCs + column headers
+    Masterdata/cache/consumers.db     # SQLite — O(1) per-IVRS lookup
+
+In production (Render free tier) the FastAPI app hits this cache instead of
+parsing the 24 MB / 96k-row spreadsheet on every request. SQLite is used for
+per-IVRS lookups because loading the full 89 MB JSON into memory is too slow
+and too memory-heavy for a 512 MB container.
 
 Run from repo root or from backend/:
     python -m scripts.build_master_cache
-or:
     python backend/scripts/build_master_cache.py
 """
 from __future__ import annotations
 
 import json
 import os
+import sqlite3
 import sys
 from pathlib import Path
 
@@ -43,10 +50,30 @@ def main() -> int:
     headers = [str(c).strip() if c is not None else "" for c in header_row]
     print(f"  {len(headers)} columns in header row")
 
-    consumers_by_ivrs: dict[str, dict] = {}
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    dcs_file = CACHE_DIR / "dcs.json"
+    db_file = CACHE_DIR / "consumers.db"
+
+    if db_file.exists():
+        db_file.unlink()
+    conn = sqlite3.connect(str(db_file))
+    cur = conn.cursor()
+    cur.execute(
+        """
+        CREATE TABLE consumers (
+            ivrs TEXT PRIMARY KEY,
+            dc   TEXT,
+            data TEXT NOT NULL
+        )
+        """
+    )
+    # Bulk-insert in one transaction; very fast.
+    cur.execute("BEGIN")
+
     dcs: list[str] = []
     dc_seen: set[str] = set()
     total = 0
+    batch: list[tuple[str, str, str]] = []
 
     for row in rows_iter:
         padded = list(row) + [None] * (len(headers) - len(row))
@@ -66,29 +93,32 @@ def main() -> int:
             else:
                 obj[h] = str(v)
 
-        consumers_by_ivrs[ivrs] = obj
-        total += 1
-
         dc_val = padded[DC_COL - 1] if DC_COL - 1 < len(padded) else None
         dc = str(dc_val).strip() if dc_val is not None else ""
+
+        batch.append((ivrs, dc, json.dumps(obj, separators=(",", ":"))))
+        total += 1
+        if len(batch) >= 5000:
+            cur.executemany("INSERT OR REPLACE INTO consumers(ivrs, dc, data) VALUES (?, ?, ?)", batch)
+            batch.clear()
+
         if dc and dc not in dc_seen:
             dc_seen.add(dc)
             dcs.append(dc)
 
-    CACHE_DIR.mkdir(parents=True, exist_ok=True)
-
-    dcs_file = CACHE_DIR / "dcs.json"
-    consumers_file = CACHE_DIR / "consumers.json"
+    if batch:
+        cur.executemany("INSERT OR REPLACE INTO consumers(ivrs, dc, data) VALUES (?, ?, ?)", batch)
+    cur.execute("CREATE INDEX idx_consumers_dc ON consumers(dc)")
+    conn.commit()
+    conn.execute("VACUUM")
+    conn.close()
 
     with dcs_file.open("w") as f:
         json.dump({"dcs": dcs, "headers": headers}, f)
 
-    with consumers_file.open("w") as f:
-        json.dump(consumers_by_ivrs, f)
-
     print(f"Unique DCs ({len(dcs)}): {dcs}")
     print(f"Total consumers indexed: {total}")
-    for p in (dcs_file, consumers_file):
+    for p in (dcs_file, db_file):
         size_mb = round(p.stat().st_size / 1024 / 1024, 2)
         print(f"  wrote {p.relative_to(BACKEND_DIR)}  ({size_mb} MB)")
     return 0

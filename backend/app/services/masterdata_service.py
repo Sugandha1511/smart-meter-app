@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 import subprocess
 import sys
+import threading
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Iterable
@@ -13,15 +15,18 @@ from app.core.config import MASTERDATA_DIR
 
 CACHE_DIR = MASTERDATA_DIR / "cache"
 DCS_CACHE_FILE = CACHE_DIR / "dcs.json"
-CONSUMERS_CACHE_FILE = CACHE_DIR / "consumers.json"
+CONSUMERS_DB_FILE = CACHE_DIR / "consumers.db"
+
+_db_lock = threading.Lock()
+_db_conn: sqlite3.Connection | None = None
 
 
 def _ensure_cache_built() -> None:
     """
-    If the JSON cache is missing (first run after a fresh checkout), build it
+    If the cache is missing (first run after a fresh checkout), build it
     on-demand so every subsequent call is instant. Safe to call repeatedly.
     """
-    if DCS_CACHE_FILE.exists() and CONSUMERS_CACHE_FILE.exists():
+    if DCS_CACHE_FILE.exists() and CONSUMERS_DB_FILE.exists():
         return
     script = Path(__file__).resolve().parents[2] / "scripts" / "build_master_cache.py"
     if not script.exists():
@@ -45,16 +50,23 @@ def _load_dcs_cache() -> dict | None:
         return None
 
 
-@lru_cache(maxsize=1)
-def _load_consumers_cache() -> dict | None:
-    _ensure_cache_built()
-    if not CONSUMERS_CACHE_FILE.exists():
-        return None
-    try:
-        with CONSUMERS_CACHE_FILE.open() as f:
-            return json.load(f)
-    except Exception:
-        return None
+def _get_db_conn() -> sqlite3.Connection | None:
+    """Lazy, process-wide SQLite connection (read-only, thread-safe)."""
+    global _db_conn
+    if _db_conn is not None:
+        return _db_conn
+    with _db_lock:
+        if _db_conn is not None:
+            return _db_conn
+        _ensure_cache_built()
+        if not CONSUMERS_DB_FILE.exists():
+            return None
+        try:
+            uri = f"file:{CONSUMERS_DB_FILE}?mode=ro"
+            _db_conn = sqlite3.connect(uri, uri=True, check_same_thread=False)
+        except Exception:
+            _db_conn = None
+        return _db_conn
 
 
 @lru_cache(maxsize=1)
@@ -239,16 +251,24 @@ def load_headers() -> list[str]:
 
 def get_full_consumer_row(ivrs: str) -> dict[str, Any] | None:
     """
-    Look up a consumer row by IVRS. O(1) via JSON cache;
+    Look up a consumer row by IVRS. O(1) via SQLite cache;
     falls back to a streaming Excel scan.
     """
     target = str(ivrs).strip()
     if not target:
         return None
 
-    cached = _load_consumers_cache()
-    if cached is not None:
-        return cached.get(target)
+    conn = _get_db_conn()
+    if conn is not None:
+        try:
+            with _db_lock:
+                cur = conn.execute("SELECT data FROM consumers WHERE ivrs = ? LIMIT 1", (target,))
+                row = cur.fetchone()
+            if row is None:
+                return None
+            return json.loads(row[0])
+        except Exception:
+            pass
 
     xlsx = _consumer_master_path()
     if not xlsx:
@@ -285,19 +305,24 @@ def get_full_consumer_row(ivrs: str) -> dict[str, Any] | None:
 def ivrs_belongs_to_dc(ivrs: str, dc_name: str) -> bool:
     """
     Validates that the IVRS exists and its DC matches.
-    O(1) via JSON cache; falls back to Excel streaming.
+    O(1) via SQLite cache; falls back to Excel streaming.
     """
     target_ivrs = str(ivrs).strip()
     target_dc = str(dc_name).strip()
     if not target_ivrs or not target_dc:
         return False
 
-    row = get_full_consumer_row(target_ivrs)
-    if row is not None:
-        row_dc = row.get("DC")
-        if isinstance(row_dc, str) and row_dc.strip() == target_dc:
-            return True
-        return False
+    conn = _get_db_conn()
+    if conn is not None:
+        try:
+            with _db_lock:
+                cur = conn.execute(
+                    "SELECT 1 FROM consumers WHERE ivrs = ? AND dc = ? LIMIT 1",
+                    (target_ivrs, target_dc),
+                )
+                return cur.fetchone() is not None
+        except Exception:
+            pass
 
     # Fallback (shouldn't normally run once cache is built).
     xlsx = _consumer_master_path()
