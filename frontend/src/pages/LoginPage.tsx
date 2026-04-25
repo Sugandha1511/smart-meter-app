@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login } from '../services/auth.service';
+import { API_BASE_URL } from '../services/api';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -11,17 +12,32 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Render free-tier sleeps after ~15 min of inactivity; pinging /health
+  // on mount lets the backend cold-start while the user types credentials
+  // instead of after they hit Login.
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch(`${API_BASE_URL}/health`, { signal: controller.signal }).catch(() => {});
+    return () => controller.abort();
+  }, []);
+
+  const [slowHint, setSlowHint] = useState(false);
+
   const onLogin = async () => {
+    setError('');
+    setLoading(true);
+    setSlowHint(false);
+    const slowTimer = window.setTimeout(() => setSlowHint(true), 4000);
     try {
-      setError('');
-      setLoading(true);
       const data = await login(employeeId, pin);
       localStorage.setItem('token', data.access_token);
       navigate('/home');
     } catch (err) {
       setError('Login failed. Please try again.');
     } finally {
+      window.clearTimeout(slowTimer);
       setLoading(false);
+      setSlowHint(false);
     }
   };
 
@@ -115,6 +131,11 @@ export default function LoginPage() {
         </div>
 
         {error ? <div className="meta" style={{ color: '#dc2626', marginTop: 10 }}>{error}</div> : null}
+        {slowHint ? (
+          <div className="meta" style={{ marginTop: 10 }}>
+            Waking up the server, this can take up to a minute on the first login...
+          </div>
+        ) : null}
 
         <button className="auth-login-btn" onClick={onLogin} disabled={loading}>
           {loading ? 'Please wait...' : 'Login'}
