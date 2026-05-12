@@ -4,7 +4,6 @@ from fastapi import APIRouter, File, UploadFile
 from app.core.config import UPLOAD_DIR
 
 router = APIRouter()
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 @router.post('')
 async def upload_file(file: UploadFile = File(...)) -> dict:
