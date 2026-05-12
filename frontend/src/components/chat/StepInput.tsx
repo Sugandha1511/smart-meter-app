@@ -100,6 +100,26 @@ export default function StepInput({ step, language = 'en', onSubmit }: Props) {
             {language === 'hi' ? option.labelHi : option.labelEn}
           </button>
         ))}
+        <div className="row" style={{ marginTop: 4 }}>
+          <input
+            className="text-input"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder={language === 'hi' ? 'या यहाँ टाइप करें…' : 'Or type here…'}
+            style={{ flex: 1 }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && value.trim()) onSubmit(value.trim(), 'text');
+            }}
+          />
+          <button
+            type="button"
+            className="btn primary"
+            disabled={!canSubmitText}
+            onClick={() => onSubmit(value.trim(), 'text')}
+          >
+            Send
+          </button>
+        </div>
       </div>
     );
   }
