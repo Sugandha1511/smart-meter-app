@@ -11,14 +11,16 @@ export default function StepInput({ step, language = 'en', onSubmit }: Props) {
   const [value, setValue] = useState('');
   const [capturing, setCapturing] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
 
   const label = language === 'hi' ? step.labelHi : step.labelEn;
   const canSubmitText = useMemo(() => value.trim().length > 0, [value]);
 
   const startVoice = () => {
-    const SR = (window as unknown as { SpeechRecognition?: typeof SpeechRecognition; webkitSpeechRecognition?: typeof SpeechRecognition }).SpeechRecognition
-      ?? (window as unknown as { webkitSpeechRecognition?: typeof SpeechRecognition }).webkitSpeechRecognition;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const w = window as any;
+    const SR = w.SpeechRecognition ?? w.webkitSpeechRecognition;
 
     if (!SR) {
       alert('Voice input is not supported in this browser. Please type your answer.');
@@ -31,8 +33,9 @@ export default function StepInput({ step, language = 'en', onSubmit }: Props) {
     recognition.maxAlternatives = 1;
     recognitionRef.current = recognition;
 
-    recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript as string;
       setValue(transcript);
       setCapturing(false);
     };
