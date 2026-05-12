@@ -1,0 +1,11 @@
+# Node
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Environment — do NOT commit .env.local (contains secrets)
+.env.local
+
+# macOS
+.DS_Store

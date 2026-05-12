@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+
+# Uploads (don't commit local uploads)
+backend/uploads/
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
