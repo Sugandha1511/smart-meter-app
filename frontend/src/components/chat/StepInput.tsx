@@ -80,9 +80,13 @@ export default function StepInput({ step, language = 'en', onSubmit }: Props) {
           {capturing ? (
             <><span className="spinner" />Capturing GPS...</>
           ) : (
-            'Capture GPS Location'
+            '📍 Capture GPS Location'
           )}
         </button>
+        <div className="row" style={{ marginTop: 8 }}>
+          <input className="text-input" placeholder="GPS will be captured automatically" readOnly style={{ flex: 1, opacity: 0.5 }} />
+          <button type="button" className="btn primary" disabled>Send</button>
+        </div>
       </div>
     );
   }
@@ -90,16 +94,42 @@ export default function StepInput({ step, language = 'en', onSubmit }: Props) {
   if (step.inputType === 'quick_reply' || step.inputType === 'select') {
     return (
       <div className="grid">
-        {step.options?.map((option) => (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+          {step.options?.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              className="btn secondary"
+              style={{ borderRadius: 20, padding: '6px 16px', fontSize: 14 }}
+              onClick={() => onSubmit(option.value, 'select')}
+            >
+              {language === 'hi' ? option.labelHi : option.labelEn}
+            </button>
+          ))}
+        </div>
+        <div className="row">
+          <input
+            className="text-input"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder="Or type your answer…"
+            style={{ flex: 1 }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && value.trim()) {
+                onSubmit(value.trim(), 'select');
+                setValue('');
+              }
+            }}
+          />
           <button
-            key={option.value}
             type="button"
-            className="btn secondary full-width"
-            onClick={() => onSubmit(option.value, 'select')}
+            className="btn primary"
+            disabled={!canSubmitText}
+            onClick={() => { onSubmit(value.trim(), 'select'); setValue(''); }}
           >
-            {language === 'hi' ? option.labelHi : option.labelEn}
+            Send
           </button>
-        ))}
+        </div>
       </div>
     );
   }
@@ -130,7 +160,7 @@ export default function StepInput({ step, language = 'en', onSubmit }: Props) {
           disabled={!canSubmitText}
           onClick={() => onSubmit(value.trim(), step.inputType === 'voice_text' ? 'voice_text' : 'text')}
         >
-          Next
+          Send
         </button>
       </div>
     );
@@ -158,6 +188,10 @@ export default function StepInput({ step, language = 'en', onSubmit }: Props) {
             }
           }}
         />
+        <div className="row" style={{ marginTop: 4 }}>
+          <input className="text-input" placeholder={previewUrl ? 'File selected — tap above to replace' : `Tap above to ${step.inputType === 'photo' ? 'take photo' : 'record video'}…`} readOnly style={{ flex: 1, opacity: 0.5 }} />
+          <button type="button" className="btn primary" disabled>Send</button>
+        </div>
       </div>
     );
   }
@@ -168,6 +202,10 @@ export default function StepInput({ step, language = 'en', onSubmit }: Props) {
         <button type="button" className="btn primary full-width" onClick={() => onSubmit(true, 'confirm')}>
           Continue
         </button>
+        <div className="row" style={{ marginTop: 8 }}>
+          <input className="text-input" placeholder="Tap Continue above to proceed…" readOnly style={{ flex: 1, opacity: 0.5 }} />
+          <button type="button" className="btn primary" disabled>Send</button>
+        </div>
       </div>
     );
   }
