@@ -2,33 +2,35 @@
   {
     "id": "dc",
     "fieldKey": "dc",
-    "labelEn": "Please select DC.",
-    "labelHi": "कृपया DC चुनें।",
+    "labelEn": "Please select your Distribution Circuit (DC).",
+    "labelHi": "कृपया अपना Distribution Circuit (DC) चुनें।",
     "inputType": "select",
     "required": true,
     "options": [
-      { "labelEn": "DC North", "labelHi": "DC नॉर्थ", "value": "dc_north" },
-      { "labelEn": "DC South", "labelHi": "DC साउथ", "value": "dc_south" }
+      { "labelEn": "DC Noida North",        "labelHi": "DC नोएडा नॉर्थ",      "value": "dc_noida_north"   },
+      { "labelEn": "DC Noida South",        "labelHi": "DC नोएडा साउथ",       "value": "dc_noida_south"   },
+      { "labelEn": "DC Greater Noida East", "labelHi": "DC ग्रेटर नोएडा ईस्ट","value": "dc_gn_east"       },
+      { "labelEn": "DC Greater Noida West", "labelHi": "DC ग्रेटर नोएडा वेस्ट","value": "dc_gn_west"       },
+      { "labelEn": "DC Gurgaon Central",    "labelHi": "DC गुड़गांव सेंट्रल",  "value": "dc_ggn_central"   },
+      { "labelEn": "DC Gurgaon South",      "labelHi": "DC गुड़गांव साउथ",     "value": "dc_ggn_south"     }
     ],
     "next": "consumer_ivrs"
   },
   {
     "id": "consumer_ivrs",
     "fieldKey": "consumer_ivrs",
-    "labelEn": "Please enter Consumer IVRS.",
-    "labelHi": "कृपया Consumer IVRS दर्ज करें।",
+    "labelEn": "Please enter the Consumer IVRS number.",
+    "labelHi": "कृपया Consumer IVRS नंबर दर्ज करें।",
     "inputType": "voice_text",
     "required": true,
-    "validation": {
-      "regex": "^[0-9A-Za-z]{6,20}$"
-    },
+    "validation": { "regex": "^[0-9A-Za-z]{6,20}$" },
     "next": "gps_location"
   },
   {
     "id": "gps_location",
     "fieldKey": "gps_location",
-    "labelEn": "Please capture GPS location.",
-    "labelHi": "कृपया GPS लोकेशन कैप्चर करें।",
+    "labelEn": "Please capture the GPS location of the installation site.",
+    "labelHi": "कृपया इंस्टॉलेशन साइट की GPS लोकेशन कैप्चर करें।",
     "inputType": "confirm",
     "required": true,
     "next": "old_meter_condition"
@@ -36,66 +38,51 @@
   {
     "id": "old_meter_condition",
     "fieldKey": "old_meter_condition",
-    "labelEn": "Please select old meter condition.",
+    "labelEn": "Please select the old meter condition.",
     "labelHi": "कृपया पुराने मीटर की स्थिति चुनें।",
     "inputType": "select",
     "required": true,
     "options": [
-      { "labelEn": "Normal", "labelHi": "सामान्य", "value": "normal" },
-      { "labelEn": "Defective", "labelHi": "खराब", "value": "defective" },
-      { "labelEn": "Bypass", "labelHi": "बाईपास", "value": "bypass" },
-      { "labelEn": "Burnt", "labelHi": "जला हुआ", "value": "burnt" },
-      { "labelEn": "Un-metered", "labelHi": "बिना मीटर", "value": "un_metered" }
+      { "labelEn": "Normal",      "labelHi": "सामान्य",    "value": "normal"      },
+      { "labelEn": "Defective",   "labelHi": "खराब",       "value": "defective"   },
+      { "labelEn": "Bypass",      "labelHi": "बाईपास",     "value": "bypass"      },
+      { "labelEn": "Burnt",       "labelHi": "जला हुआ",   "value": "burnt"       },
+      { "labelEn": "Un-metered",  "labelHi": "बिना मीटर", "value": "un_metered"  }
     ],
     "next": "old_meter_video"
   },
   {
     "id": "old_meter_video",
     "fieldKey": "old_meter_video",
-    "labelEn": "Please capture old meter video.",
-    "labelHi": "कृपया पुराने मीटर का वीडियो कैप्चर करें।",
+    "labelEn": "Please capture a video of the old meter. Meter details will be extracted automatically.",
+    "labelHi": "कृपया पुराने मीटर का वीडियो कैप्चर करें। मीटर विवरण स्वचालित रूप से निकाला जाएगा।",
     "inputType": "video",
     "required": true,
-    "next": "old_meter_number"
-  },
-  {
-    "id": "old_meter_number",
-    "fieldKey": "old_meter_number",
-    "labelEn": "Please enter the old meter number.",
-    "labelHi": "कृपया पुराने मीटर का नंबर दर्ज करें।",
-    "inputType": "voice_text",
-    "required": true,
-    "validation": {
-      "regex": "^[0-9A-Za-z]{4,20}$"
-    },
     "next": "new_meter_video"
   },
   {
     "id": "new_meter_video",
     "fieldKey": "new_meter_video",
-    "labelEn": "Please capture new meter video.",
-    "labelHi": "कृपया नए मीटर का वीडियो कैप्चर करें।",
+    "labelEn": "Please capture a video of the new meter. Meter details will be extracted automatically.",
+    "labelHi": "कृपया नए मीटर का वीडियो कैप्चर करें। मीटर विवरण स्वचालित रूप से निकाला जाएगा।",
     "inputType": "video",
     "required": true,
-    "next": "new_meter_number"
+    "next": "meter_body_seal_1_photo"
   },
   {
-    "id": "new_meter_number",
-    "fieldKey": "new_meter_number",
-    "labelEn": "Please enter the new meter number.",
-    "labelHi": "कृपया नए मीटर का नंबर दर्ज करें।",
-    "inputType": "voice_text",
+    "id": "meter_body_seal_1_photo",
+    "fieldKey": "meter_body_seal_1_photo",
+    "labelEn": "Please capture Meter Body Seal 1 photo.",
+    "labelHi": "कृपया मीटर बॉडी सील 1 की फोटो लें।",
+    "inputType": "photo",
     "required": true,
-    "validation": {
-      "regex": "^[0-9A-Za-z]{4,20}$"
-    },
-    "next": "meter_body_seal_photo"
+    "next": "meter_body_seal_2_photo"
   },
   {
-    "id": "meter_body_seal_photo",
-    "fieldKey": "meter_body_seal_photo",
-    "labelEn": "Please capture meter body seal photo.",
-    "labelHi": "कृपया मीटर बॉडी सील की फोटो लें।",
+    "id": "meter_body_seal_2_photo",
+    "fieldKey": "meter_body_seal_2_photo",
+    "labelEn": "Please capture Meter Body Seal 2 photo.",
+    "labelHi": "कृपया मीटर बॉडी सील 2 की फोटो लें।",
     "inputType": "photo",
     "required": true,
     "next": "nic_seal_photo"
@@ -103,17 +90,26 @@
   {
     "id": "nic_seal_photo",
     "fieldKey": "nic_seal_photo",
-    "labelEn": "Please capture NIC seal photo.",
+    "labelEn": "Please capture the NIC Seal photo.",
     "labelHi": "कृपया NIC सील की फोटो लें।",
     "inputType": "photo",
     "required": true,
-    "next": "terminal_seal_photo"
+    "next": "terminal_seal_1_photo"
   },
   {
-    "id": "terminal_seal_photo",
-    "fieldKey": "terminal_seal_photo",
-    "labelEn": "Please capture terminal seal photo.",
-    "labelHi": "कृपया टर्मिनल सील की फोटो लें।",
+    "id": "terminal_seal_1_photo",
+    "fieldKey": "terminal_seal_1_photo",
+    "labelEn": "Please capture Terminal Seal 1 photo.",
+    "labelHi": "कृपया टर्मिनल सील 1 की फोटो लें।",
+    "inputType": "photo",
+    "required": true,
+    "next": "terminal_seal_2_photo"
+  },
+  {
+    "id": "terminal_seal_2_photo",
+    "fieldKey": "terminal_seal_2_photo",
+    "labelEn": "Please capture Terminal Seal 2 photo.",
+    "labelHi": "कृपया टर्मिनल सील 2 की फोटो लें।",
     "inputType": "photo",
     "required": true,
     "next": "box_seal_photo"
@@ -121,8 +117,8 @@
   {
     "id": "box_seal_photo",
     "fieldKey": "box_seal_photo",
-    "labelEn": "Please capture box seal photo.",
-    "labelHi": "कृपया बॉक्स सील की फोटो लें।",
+    "labelEn": "Please capture the Meter Box Seal photo.",
+    "labelHi": "कृपया मीटर बॉक्स सील की फोटो लें।",
     "inputType": "photo",
     "required": true,
     "next": "service_cable_type"
@@ -130,21 +126,21 @@
   {
     "id": "service_cable_type",
     "fieldKey": "service_cable_type",
-    "labelEn": "Please select service cable type.",
+    "labelEn": "Please select the service cable type.",
     "labelHi": "कृपया सर्विस केबल का प्रकार चुनें।",
     "inputType": "select",
     "required": true,
     "options": [
-      { "labelEn": "Armoured", "labelHi": "आर्मर्ड", "value": "armoured" },
-      { "labelEn": "Unarmoured", "labelHi": "अनआर्मर्ड", "value": "unarmoured" }
+      { "labelEn": "Armoured",   "labelHi": "आर्मर्ड",     "value": "armoured"   },
+      { "labelEn": "Unarmoured", "labelHi": "अनआर्मर्ड",   "value": "unarmoured" }
     ],
     "next": "preview_submit"
   },
   {
     "id": "preview_submit",
     "fieldKey": "preview_submit",
-    "labelEn": "Please review and submit.",
-    "labelHi": "कृपया समीक्षा करें और सबमिट करें।",
+    "labelEn": "Please review all details and submit.",
+    "labelHi": "कृपया सभी विवरण की समीक्षा करें और सबमिट करें।",
     "inputType": "confirm",
     "required": true
   }

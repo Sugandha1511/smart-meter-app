@@ -1,8 +1,8 @@
 import { api } from './api';
 
-export async function getAssignedWorkOrders() {
+export async function getAssignedWorkOrders(type = 'meter_installation') {
   const response = await api.get('/work-orders/assigned', {
-    params: { type: 'meter_installation' }
+    params: { type }
   });
   return response.data;
 }

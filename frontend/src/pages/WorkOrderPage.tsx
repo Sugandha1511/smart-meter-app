@@ -15,19 +15,65 @@ import { useWorkOrderStore } from '../store/workOrder.store';
 import { WorkOrderStep } from '../types/work-order';
 
 const FIELD_LABELS: Record<string, string> = {
+  // Form fields
   dc: 'DC',
   consumer_ivrs: 'Consumer IVRS',
   gps_location: 'GPS Location',
   old_meter_condition: 'Old Meter Condition',
   old_meter_video: 'Old Meter Video',
-  old_meter_number: 'Old Meter Number',
   new_meter_video: 'New Meter Video',
-  new_meter_number: 'New Meter Number',
-  meter_body_seal_photo: 'Meter Body Seal',
+  meter_body_seal_1_photo: 'Meter Body Seal 1',
+  meter_body_seal_2_photo: 'Meter Body Seal 2',
   nic_seal_photo: 'NIC Seal',
-  terminal_seal_photo: 'Terminal Seal',
+  terminal_seal_1_photo: 'Terminal Seal 1',
+  terminal_seal_2_photo: 'Terminal Seal 2',
   box_seal_photo: 'Box Seal',
   service_cable_type: 'Service Cable Type',
+  // DC master data
+  dc_code: 'DC Code',
+  circle: 'Circle',
+  division: 'Division',
+  substation: 'Substation',
+  substation_code: 'Substation Code',
+  feeder: 'Feeder',
+  feeder_code: 'Feeder Code',
+  unique_dt_code: 'Unique DT Code',
+  dt_name: 'DT Name',
+  // Consumer master data
+  consumer_uid: 'Consumer UID',
+  consumer_name: 'Consumer Name',
+  consumer_mobile: 'Consumer Mobile',
+  sanctioned_load: 'Sanctioned Load',
+  consumer_type: 'Consumer Type',
+  tariff_category: 'Tariff Category',
+  consumer_address: 'Consumer Address',
+  old_meter_class: 'Old Meter Class',
+  previous_month_reading_kwh: 'Prev. Month Reading (kWh)',
+  ci_exception_status: 'CI Exception Status',
+  consumer_mi_possible: 'Consumer MI Possible',
+  is_old_meter_available: 'Old Meter Available',
+  old_meter_height: 'Old Meter Height',
+  service_line_visible: 'Service Line Visible',
+  new_meter_location: 'New Meter Location',
+  // Extracted – old meter
+  old_meter_serial_number: 'Old Meter Serial No.',
+  old_meter_current_rating: 'Old Meter Current Rating',
+  old_meter_type: 'Old Meter Type',
+  old_meter_kwh_reading: 'Old Meter kWh Reading',
+  old_meter_kw_reading: 'Old Meter kW Reading',
+  old_meter_avg_pf_reading: 'Old Meter Avg PF',
+  old_meter_manufacturing_year: 'Old Meter Mfg. Year',
+  consumption_kwh: 'Consumption (kWh)',
+  // Extracted – new meter
+  new_meter_make: 'New Meter Make',
+  new_meter_serial_number: 'New Meter Serial No.',
+  new_meter_phase: 'New Meter Phase',
+  new_meter_kwh_reading: 'New Meter kWh Reading',
+  new_meter_kw_reading: 'New Meter kW Reading',
+  communication_module: 'Communication Module',
+  // GPS
+  latitude: 'Latitude',
+  longitude: 'Longitude',
 };
 
 function formatPreviewValue(value: unknown): string {
@@ -190,8 +236,14 @@ export default function WorkOrderPage() {
       <main className="chat-main">
         {workOrderMeta && (
           <div className="card" style={{ padding: '12px 16px', marginBottom: 12 }}>
-            <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{workOrderMeta.consumerName}</div>
-            <div className="meta">{workOrderMeta.address}</div>
+            <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{workOrderMeta.consumerName as string}</div>
+            <div className="meta">{workOrderMeta.address as string}</div>
+            {workOrderMeta.workOrderNumber && (
+              <div className="meta" style={{ marginTop: 4 }}>WO: <strong>{workOrderMeta.workOrderNumber as string}</strong></div>
+            )}
+            {workOrderMeta.consumerIvrs && (
+              <div className="meta" style={{ marginTop: 2 }}>IVRS: <strong>{workOrderMeta.consumerIvrs as string}</strong></div>
+            )}
           </div>
         )}
 

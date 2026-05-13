@@ -11,14 +11,14 @@ REQUIRED_FIELDS = [
     'gps_location',
     'old_meter_condition',
     'old_meter_video',
-    'old_meter_number',
     'new_meter_video',
-    'new_meter_number',
-    'meter_body_seal_photo',
+    'meter_body_seal_1_photo',
+    'meter_body_seal_2_photo',
     'nic_seal_photo',
-    'terminal_seal_photo',
+    'terminal_seal_1_photo',
+    'terminal_seal_2_photo',
     'box_seal_photo',
-    'service_cable_type'
+    'service_cable_type',
 ]
 
 SUBMISSION_LOG: dict[str, dict] = {}
