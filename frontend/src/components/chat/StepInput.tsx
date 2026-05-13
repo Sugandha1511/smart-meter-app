@@ -53,6 +53,10 @@ export default function StepInput({ step, language = 'en', onSubmit }: Props) {
 
   // GPS capture step
   if (step.fieldKey === 'gps_location') {
+    const gpsLabel = language === 'hi' ? '📍 GPS लोकेशन कैप्चर करें' : '📍 Capture GPS Location';
+    const capturingLabel = language === 'hi' ? 'GPS कैप्चर हो रहा है...' : 'Capturing GPS...';
+    const autoLabel = language === 'hi' ? 'GPS स्वचालित रूप से कैप्चर होगा' : 'GPS will be captured automatically';
+    const sendLabel = language === 'hi' ? 'भेजें' : 'Send';
     return (
       <div className="grid">
         <button
@@ -77,21 +81,19 @@ export default function StepInput({ step, language = 'en', onSubmit }: Props) {
             );
           }}
         >
-          {capturing ? (
-            <><span className="spinner" />Capturing GPS...</>
-          ) : (
-            '📍 Capture GPS Location'
-          )}
+          {capturing ? <><span className="spinner" />{capturingLabel}</> : gpsLabel}
         </button>
         <div className="row" style={{ marginTop: 8 }}>
-          <input className="text-input" placeholder="GPS will be captured automatically" readOnly style={{ flex: 1, opacity: 0.5 }} />
-          <button type="button" className="btn primary" disabled>Send</button>
+          <input className="text-input" placeholder={autoLabel} readOnly style={{ flex: 1, opacity: 0.5 }} />
+          <button type="button" className="btn primary" disabled>{sendLabel}</button>
         </div>
       </div>
     );
   }
 
   if (step.inputType === 'quick_reply' || step.inputType === 'select') {
+    const orTypePlaceholder = language === 'hi' ? 'या अपना जवाब टाइप करें…' : 'Or type your answer…';
+    const sendLabel = language === 'hi' ? 'भेजें' : 'Send';
     return (
       <div className="grid">
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
@@ -112,7 +114,7 @@ export default function StepInput({ step, language = 'en', onSubmit }: Props) {
             className="text-input"
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            placeholder="Or type your answer…"
+            placeholder={orTypePlaceholder}
             style={{ flex: 1 }}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && value.trim()) {
@@ -127,7 +129,7 @@ export default function StepInput({ step, language = 'en', onSubmit }: Props) {
             disabled={!canSubmitText}
             onClick={() => { onSubmit(value.trim(), 'select'); setValue(''); }}
           >
-            Send
+            {sendLabel}
           </button>
         </div>
       </div>
@@ -135,6 +137,7 @@ export default function StepInput({ step, language = 'en', onSubmit }: Props) {
   }
 
   if (step.inputType === 'text' || step.inputType === 'number' || step.inputType === 'voice_text') {
+    const sendLabel = language === 'hi' ? 'भेजें' : 'Send';
     return (
       <div className="row">
         <input
@@ -160,51 +163,61 @@ export default function StepInput({ step, language = 'en', onSubmit }: Props) {
           disabled={!canSubmitText}
           onClick={() => onSubmit(value.trim(), step.inputType === 'voice_text' ? 'voice_text' : 'text')}
         >
-          Send
+          {sendLabel}
         </button>
       </div>
     );
   }
 
   if (step.inputType === 'photo' || step.inputType === 'video') {
+    const isPhoto = step.inputType === 'photo';
+    const tapLabel = isPhoto
+      ? (language === 'hi' ? 'फ़ोटो लेने के लिए टैप करें…' : 'Tap above to take photo…')
+      : (language === 'hi' ? 'वीडियो रिकॉर्ड करने के लिए टैप करें…' : 'Tap above to record video…');
+    const replaceLbl = language === 'hi' ? 'फ़ाइल चुनी — बदलने के लिए टैप करें' : 'File selected — tap above to replace';
+    const selectedLbl = language === 'hi' ? '✅ वीडियो चुना — बदलने के लिए टैप करें' : '✅ Video selected — tap below to replace';
+    const sendLabel = language === 'hi' ? 'भेजें' : 'Send';
     return (
       <div className="grid">
-        {previewUrl && step.inputType === 'photo' && (
+        {previewUrl && isPhoto && (
           <img src={previewUrl} alt="Captured" className="file-preview" />
         )}
-        {previewUrl && step.inputType === 'video' && (
-          <div className="file-preview-label">✅ Video selected — tap below to replace</div>
+        {previewUrl && !isPhoto && (
+          <div className="file-preview-label">{selectedLbl}</div>
         )}
         <input
           type="file"
-          accept={step.inputType === 'photo' ? 'image/*' : 'video/*'}
+          accept={isPhoto ? 'image/*' : 'video/*'}
           capture="environment"
           className="file-input"
           onChange={(e) => {
             const file = e.target.files?.[0];
             if (file) {
-              setPreviewUrl(step.inputType === 'photo' ? URL.createObjectURL(file) : 'video');
+              setPreviewUrl(isPhoto ? URL.createObjectURL(file) : 'video');
               onSubmit(file, 'file');
             }
           }}
         />
         <div className="row" style={{ marginTop: 4 }}>
-          <input className="text-input" placeholder={previewUrl ? 'File selected — tap above to replace' : `Tap above to ${step.inputType === 'photo' ? 'take photo' : 'record video'}…`} readOnly style={{ flex: 1, opacity: 0.5 }} />
-          <button type="button" className="btn primary" disabled>Send</button>
+          <input className="text-input" placeholder={previewUrl ? replaceLbl : tapLabel} readOnly style={{ flex: 1, opacity: 0.5 }} />
+          <button type="button" className="btn primary" disabled>{sendLabel}</button>
         </div>
       </div>
     );
   }
 
   if (step.inputType === 'confirm') {
+    const continueLabel = language === 'hi' ? 'जारी रखें' : 'Continue';
+    const hintLabel = language === 'hi' ? 'आगे बढ़ने के लिए ऊपर जारी रखें दबाएं…' : 'Tap Continue above to proceed…';
+    const sendLabel = language === 'hi' ? 'भेजें' : 'Send';
     return (
       <div className="grid">
         <button type="button" className="btn primary full-width" onClick={() => onSubmit(true, 'confirm')}>
-          Continue
+          {continueLabel}
         </button>
         <div className="row" style={{ marginTop: 8 }}>
-          <input className="text-input" placeholder="Tap Continue above to proceed…" readOnly style={{ flex: 1, opacity: 0.5 }} />
-          <button type="button" className="btn primary" disabled>Send</button>
+          <input className="text-input" placeholder={hintLabel} readOnly style={{ flex: 1, opacity: 0.5 }} />
+          <button type="button" className="btn primary" disabled>{sendLabel}</button>
         </div>
       </div>
     );

@@ -2,21 +2,45 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ChatHeader from '../components/chat/ChatHeader';
 import { startWorkOrder } from '../services/workOrder.service';
+import { useWorkOrderStore } from '../store/workOrder.store';
 
 const WORK_ORDER_TYPES = [
-  { label: 'Feeder Survey',      value: 'feeder_survey'      },
-  { label: 'DT Survey',          value: 'dt_survey'          },
-  { label: 'Consumer Survey',    value: 'consumer_survey'    },
-  { label: 'Meter Installation', value: 'meter_installation' },
+  { en: 'Feeder Survey',      hi: 'फीडर सर्वे',         value: 'feeder_survey'      },
+  { en: 'DT Survey',          hi: 'DT सर्वे',            value: 'dt_survey'          },
+  { en: 'Consumer Survey',    hi: 'उपभोक्ता सर्वे',      value: 'consumer_survey'    },
+  { en: 'Meter Installation', hi: 'मीटर इंस्टॉलेशन',    value: 'meter_installation' },
 ];
 
 const DC_OPTIONS = [
-  { label: 'Katara Hills',       value: 'katara_hills'       },
-  { label: 'Shahpura Zone',      value: 'shahpura_zone'      },
-  { label: 'Shakti Nagar',       value: 'shakti_nagar'       },
-  { label: 'Vallabh Nagar Zone', value: 'vallabh_nagar_zone' },
-  { label: 'Vidhya Nagar Zone',  value: 'vidhya_nagar_zone'  },
+  { en: 'Katara Hills',       hi: 'कटारा हिल्स',        value: 'katara_hills'       },
+  { en: 'Shahpura Zone',      hi: 'शाहपुरा ज़ोन',       value: 'shahpura_zone'      },
+  { en: 'Shakti Nagar',       hi: 'शक्ति नगर',          value: 'shakti_nagar'       },
+  { en: 'Vallabh Nagar Zone', hi: 'वल्लभ नगर ज़ोन',    value: 'vallabh_nagar_zone' },
+  { en: 'Vidhya Nagar Zone',  hi: 'विद्या नगर ज़ोन',   value: 'vidhya_nagar_zone'  },
 ];
+
+const T = {
+  start:         { en: 'Type "Hi" to get started.',                              hi: 'शुरू करने के लिए "नमस्ते" टाइप करें।' },
+  welcome:       { en: 'Welcome to Yukti!\n\nPlease select the type of work order you want to execute.', hi: 'Yukti में आपका स्वागत है!\n\nकृपया उस कार्य आदेश का प्रकार चुनें जिसे आप निष्पादित करना चाहते हैं।' },
+  selectDC:      { en: 'Please select your Distribution Circuit (DC).',           hi: 'कृपया अपना वितरण सर्किट (DC) चुनें।' },
+  enterIvrs:     { en: 'Please enter the Consumer IVRS number.',                   hi: 'कृपया उपभोक्ता IVRS नंबर दर्ज करें।' },
+  comingSoon:    { en: 'is coming soon. Please select Meter Installation.',        hi: 'जल्द आ रहा है। कृपया मीटर इंस्टॉलेशन चुनें।' },
+  ivrsPlaceholder: { en: 'Enter Consumer IVRS number…',                           hi: 'उपभोक्ता IVRS नंबर दर्ज करें…' },
+  selectAbove:   { en: 'Select an option above…',                                  hi: 'ऊपर से एक विकल्प चुनें…' },
+  validating:    { en: 'Validating…',                                              hi: 'जाँच हो रही है…' },
+  redirecting:   { en: 'Redirecting…',                                             hi: 'रीडायरेक्ट हो रहा है…' },
+  checking:      { en: 'Checking…',                                                hi: 'जाँच हो रही है…' },
+  send:          { en: 'Send',                                                      hi: 'भेजें' },
+  notFound:      { en: 'IVRS not found. Please check the number and DC selection.', hi: 'IVRS नहीं मिला। कृपया नंबर और DC चयन जाँचें।' },
+  verified:      { en: '✅ Consumer verified!',                                    hi: '✅ उपभोक्ता सत्यापित!' },
+  starting:      { en: 'Starting Meter Installation workflow…',                    hi: 'मीटर इंस्टॉलेशन वर्कफ़्लो शुरू हो रहा है…' },
+  name:          { en: 'Name',     hi: 'नाम' },
+  address:       { en: 'Address',  hi: 'पता' },
+  phase:         { en: 'Phase',    hi: 'फेज़' },
+  dc:            { en: 'DC',       hi: 'DC' },
+  retryIvrs:     { en: 'Please re-enter the Consumer IVRS number.',               hi: 'कृपया उपभोक्ता IVRS नंबर फिर से दर्ज करें।' },
+  hiPrompt:      { en: 'Hi',       hi: 'नमस्ते' },
+};
 
 interface Message { id: string; sender: 'bot' | 'user'; text: string; }
 
@@ -24,6 +48,8 @@ type Stage = 'start' | 'type_selection' | 'dc_selection' | 'ivrs_entry' | 'valid
 
 export default function HomePage() {
   const navigate = useNavigate();
+  const { language } = useWorkOrderStore();
+  const t = (key: keyof typeof T) => language === 'hi' ? T[key].hi : T[key].en;
   const [stage, setStage] = useState<Stage>('start');
   const [selectedDc, setSelectedDc] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -45,26 +71,27 @@ export default function HomePage() {
     setMessages(prev => [...prev, ...msgs.map(m => ({ ...m, id: crypto.randomUUID() }))]);
 
   const handleStart = () => {
-    const text = input.trim() || 'Hi';
+    const text = input.trim() || t('hiPrompt');
     setInput('');
     setMessages([
       { id: '1', sender: 'user', text },
-      { id: '2', sender: 'bot', text: 'Welcome to Yukti!\n\nPlease select the type of work order you want to execute.' },
+      { id: '2', sender: 'bot', text: t('welcome') },
     ]);
     setStage('type_selection');
   };
 
   const handleTypeSelect = (type: typeof WORK_ORDER_TYPES[number]) => {
+    const label = language === 'hi' ? type.hi : type.en;
     if (type.value === 'meter_installation') {
       addMessages(
-        { sender: 'user', text: type.label },
-        { sender: 'bot', text: 'Please select your Distribution Circuit (DC).' }
+        { sender: 'user', text: label },
+        { sender: 'bot', text: t('selectDC') }
       );
       setStage('dc_selection');
     } else {
       addMessages(
-        { sender: 'user', text: type.label },
-        { sender: 'bot', text: `${type.label} is coming soon. Please select Meter Installation.` }
+        { sender: 'user', text: label },
+        { sender: 'bot', text: `${label} ${t('comingSoon')}` }
       );
     }
   };
@@ -72,9 +99,10 @@ export default function HomePage() {
   const handleDcSelect = (dc: typeof DC_OPTIONS[number]) => {
     setSelectedDc(dc.value);
     setError('');
+    const label = language === 'hi' ? dc.hi : dc.en;
     addMessages(
-      { sender: 'user', text: dc.label },
-      { sender: 'bot', text: 'Please enter the Consumer IVRS number.' }
+      { sender: 'user', text: label },
+      { sender: 'bot', text: t('enterIvrs') }
     );
     setStage('ivrs_entry');
   };
@@ -90,23 +118,24 @@ export default function HomePage() {
 
     try {
       const result = await startWorkOrder(selectedDc, ivrs);
-      const dcLabel = DC_OPTIONS.find(d => d.value === selectedDc)?.label ?? selectedDc;
+      const dcOption = DC_OPTIONS.find(d => d.value === selectedDc);
+      const dcLabel = dcOption ? (language === 'hi' ? dcOption.hi : dcOption.en) : selectedDc;
       addMessages({
         sender: 'bot',
-        text: `✅ Consumer verified!\n\n` +
-          `Name: ${result.consumer_name}\n` +
-          (result.address ? `Address: ${result.address}\n` : '') +
-          `Phase: ${result.phase}\n` +
-          `DC: ${dcLabel}\n\n` +
-          `Starting Meter Installation workflow…`
+        text: `${t('verified')}\n\n` +
+          `${t('name')}: ${result.consumer_name}\n` +
+          (result.address ? `${t('address')}: ${result.address}\n` : '') +
+          `${t('phase')}: ${result.phase}\n` +
+          `${t('dc')}: ${dcLabel}\n\n` +
+          t('starting')
       });
       setStage('confirmed');
       setTimeout(() => navigate(`/work-orders/${result.work_order_id}`), 1500);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
-        ?? 'IVRS not found. Please check the number and DC selection.';
+        ?? t('notFound');
       setError(msg);
-      addMessages({ sender: 'bot', text: `❌ ${msg}\n\nPlease re-enter the Consumer IVRS number.` });
+      addMessages({ sender: 'bot', text: `❌ ${msg}\n\n${t('retryIvrs')}` });
       setStage('ivrs_entry');
       setLoading(false);
     } finally {
@@ -123,12 +152,12 @@ export default function HomePage() {
             className="text-input"
             value={input}
             onChange={e => setInput(e.target.value)}
-            placeholder='Type "Hi" to start…'
+            placeholder={language === 'hi' ? 'शुरू करने के लिए "नमस्ते" टाइप करें…' : 'Type "Hi" to start…'}
             style={{ flex: 1 }}
             onKeyDown={e => { if (e.key === 'Enter') handleStart(); }}
             autoFocus
           />
-          <button type="button" className="btn primary" onClick={handleStart}>Send</button>
+          <button type="button" className="btn primary" onClick={handleStart}>{t('send')}</button>
         </div>
       );
     }
@@ -142,7 +171,7 @@ export default function HomePage() {
               className="text-input"
               value={input}
               onChange={e => { setInput(e.target.value); setError(''); }}
-              placeholder="Enter Consumer IVRS number…"
+              placeholder={t('ivrsPlaceholder')}
               style={{ flex: 1 }}
               onKeyDown={e => { if (e.key === 'Enter') void handleIvrsSubmit(); }}
               disabled={loading}
@@ -153,7 +182,7 @@ export default function HomePage() {
               onClick={() => void handleIvrsSubmit()}
               disabled={!input.trim() || loading}
             >
-              {loading ? <><span className="spinner" />Checking…</> : 'Send'}
+              {loading ? <><span className="spinner" />{t('checking')}</> : t('send')}
             </button>
           </div>
         </div>
@@ -162,16 +191,16 @@ export default function HomePage() {
     if (stage === 'validating' || stage === 'confirmed') {
       return (
         <div className="row">
-          <input className="text-input" placeholder={stage === 'confirmed' ? 'Redirecting…' : 'Validating…'} readOnly style={{ flex: 1, opacity: 0.5 }} />
-          <button type="button" className="btn primary" disabled>Send</button>
+          <input className="text-input" placeholder={stage === 'confirmed' ? t('redirecting') : t('validating')} readOnly style={{ flex: 1, opacity: 0.5 }} />
+          <button type="button" className="btn primary" disabled>{t('send')}</button>
         </div>
       );
     }
     // type_selection / dc_selection — show greyed input below chips
     return (
       <div className="row">
-        <input className="text-input" placeholder="Select an option above…" readOnly style={{ flex: 1, opacity: 0.5 }} />
-        <button type="button" className="btn primary" disabled>Send</button>
+        <input className="text-input" placeholder={t('selectAbove')} readOnly style={{ flex: 1, opacity: 0.5 }} />
+        <button type="button" className="btn primary" disabled>{t('send')}</button>
       </div>
     );
   };
@@ -182,7 +211,11 @@ export default function HomePage() {
 
       <main className="chat-main">
         {stage === 'start' && (
-          <div className="message bot">Type <strong>"Hi"</strong> to get started.</div>
+          <div className="message bot">
+            {language === 'hi'
+              ? <>शुरू करने के लिए <strong>"नमस्ते"</strong> टाइप करें।</>
+              : <>Type <strong>"Hi"</strong> to get started.</>}
+          </div>
         )}
 
         {messages.map(m => (
@@ -191,11 +224,11 @@ export default function HomePage() {
 
         {stage === 'type_selection' && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, margin: '8px 0 12px' }}>
-            {WORK_ORDER_TYPES.map(t => (
-              <button key={t.value} type="button" className="btn secondary"
+            {WORK_ORDER_TYPES.map(wt => (
+              <button key={wt.value} type="button" className="btn secondary"
                 style={{ borderRadius: 20, padding: '8px 18px', fontSize: 14 }}
-                onClick={() => handleTypeSelect(t)}>
-                {t.label}
+                onClick={() => handleTypeSelect(wt)}>
+                {language === 'hi' ? wt.hi : wt.en}
               </button>
             ))}
           </div>
@@ -207,7 +240,7 @@ export default function HomePage() {
               <button key={dc.value} type="button" className="btn secondary"
                 style={{ borderRadius: 20, padding: '8px 18px', fontSize: 14 }}
                 onClick={() => handleDcSelect(dc)}>
-                {dc.label}
+                {language === 'hi' ? dc.hi : dc.en}
               </button>
             ))}
           </div>

@@ -183,7 +183,7 @@ export default function WorkOrderPage() {
 
       await workflowQuery.refetch();
     } catch {
-      setErrorMsg('Could not save your answer. Please try again.');
+      setErrorMsg(language === 'hi' ? 'आपका जवाब सहेजा नहीं जा सका। कृपया पुनः प्रयास करें।' : 'Could not save your answer. Please try again.');
     }
   };
 
@@ -196,7 +196,7 @@ export default function WorkOrderPage() {
         state: { submissionId: result.submission_id, submittedAt: result.submitted_at }
       });
     } catch {
-      setErrorMsg('Submission failed. Please check all required fields and try again.');
+      setErrorMsg(language === 'hi' ? 'सबमिशन विफल रहा। सभी आवश्यक फ़ील्ड जाँचें और पुनः प्रयास करें।' : 'Submission failed. Please check all required fields and try again.');
     }
   };
 
@@ -209,7 +209,7 @@ export default function WorkOrderPage() {
       setMessages([]);
       await workflowQuery.refetch();
     } catch {
-      setErrorMsg('Could not restart workflow. Please try again.');
+      setErrorMsg(language === 'hi' ? 'वर्कफ़्लो पुनर्आरंभ नहीं हो सका। कृपया पुनः प्रयास करें।' : 'Could not restart workflow. Please try again.');
     } finally {
       setIsEditing(false);
     }
@@ -219,7 +219,7 @@ export default function WorkOrderPage() {
 
   return (
     <div className="chat-layout">
-      <ChatHeader subtitle={workOrderMeta?.meterType ? `Meter Installation · ${workOrderMeta.meterType}` : 'Meter Installation'} />
+      <ChatHeader subtitle={language === 'hi' ? `मीटर इंस्टॉलेशन${workOrderMeta?.meterType ? ` · ${workOrderMeta.meterType}` : ''}` : workOrderMeta?.meterType ? `Meter Installation · ${workOrderMeta.meterType}` : 'Meter Installation'} />
 
       <div style={{ padding: '6px 16px 0', background: '#fff', borderBottom: '1px solid #e2e8f0' }}>
         <div className="progress-bar-track">
@@ -227,7 +227,9 @@ export default function WorkOrderPage() {
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 6 }}>
           <span className="meta" style={{ fontSize: 12 }}>
-            {showPreview ? 'All steps completed' : `Step ${stepIndex || 1} of ${totalSteps || 1}`}
+            {showPreview
+              ? (language === 'hi' ? 'सभी चरण पूर्ण' : 'All steps completed')
+              : (language === 'hi' ? `चरण ${stepIndex || 1} / ${totalSteps || 1}` : `Step ${stepIndex || 1} of ${totalSteps || 1}`)}
           </span>
           <span className="meta" style={{ fontSize: 12 }}>{progressPercent}%</span>
         </div>
@@ -239,7 +241,7 @@ export default function WorkOrderPage() {
             <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{workOrderMeta.consumerName as string}</div>
             <div className="meta">{workOrderMeta.address as string}</div>
             {workOrderMeta.workOrderNumber && (
-              <div className="meta" style={{ marginTop: 4 }}>WO: <strong>{workOrderMeta.workOrderNumber as string}</strong></div>
+              <div className="meta" style={{ marginTop: 4 }}>{language === 'hi' ? 'WO:' : 'WO:'} <strong>{workOrderMeta.workOrderNumber as string}</strong></div>
             )}
             {workOrderMeta.consumerIvrs && (
               <div className="meta" style={{ marginTop: 2 }}>IVRS: <strong>{workOrderMeta.consumerIvrs as string}</strong></div>
@@ -253,7 +255,9 @@ export default function WorkOrderPage() {
 
         {showPreview && (
           <div className="card" style={{ padding: 16, marginBottom: 12 }}>
-            <h3 className="section-title" style={{ marginBottom: 12 }}>Review Before Submitting</h3>
+            <h3 className="section-title" style={{ marginBottom: 12 }}>
+              {language === 'hi' ? 'सबमिट करने से पहले समीक्षा करें' : 'Review Before Submitting'}
+            </h3>
             <div className="summary-grid">
               {Object.entries(answers).map(([key, value]) => (
                 <div key={key} className="meta-row">
@@ -278,7 +282,7 @@ export default function WorkOrderPage() {
               disabled={isEditing}
               style={{ flex: 1 }}
             >
-              {isEditing ? 'Resetting...' : 'Edit'}
+              {isEditing ? (language === 'hi' ? 'रीसेट हो रहा...' : 'Resetting...') : (language === 'hi' ? 'संपादित करें' : 'Edit')}
             </button>
             <button
               type="button"
@@ -287,13 +291,15 @@ export default function WorkOrderPage() {
               disabled={submitMutation.isPending}
               style={{ flex: 1 }}
             >
-              {submitMutation.isPending ? <><span className="spinner" />Submitting...</> : 'Submit'}
+              {submitMutation.isPending
+                ? <><span className="spinner" />{language === 'hi' ? 'सबमिट हो रहा...' : 'Submitting...'}</>
+                : (language === 'hi' ? 'सबमिट करें' : 'Submit')}
             </button>
           </div>
         ) : currentStep ? (
           <StepInput step={currentStep} language={language} onSubmit={handleAnswer} />
         ) : (
-          <div className="message bot">Loading current step...</div>
+          <div className="message bot">{language === 'hi' ? 'वर्तमान चरण लोड हो रहा है...' : 'Loading current step...'}</div>
         )}
       </footer>
     </div>
