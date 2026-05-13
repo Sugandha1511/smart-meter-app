@@ -1,5 +1,17 @@
 import { api } from './api';
 
+export async function startWorkOrder(dc: string, consumerIvrs: string): Promise<{
+  work_order_id: string;
+  consumer_name: string;
+  address: string;
+  phase: string;
+  tariff_code: string;
+  sanctioned_load: string;
+}> {
+  const response = await api.post('/work-orders/start', { dc, consumer_ivrs: consumerIvrs });
+  return response.data;
+}
+
 export async function getAssignedWorkOrders(type = 'meter_installation') {
   const response = await api.get('/work-orders/assigned', {
     params: { type }

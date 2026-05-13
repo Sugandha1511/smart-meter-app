@@ -1,9 +1,16 @@
+import uuid
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from app.schemas.work_order import StepAnswerRequest
 from app.services.workflow_service import get_first_step, get_next_step, get_step_by_id, load_workflow
 from app.services.validation_service import validate_value
 from app.services.extraction_service import extract_old_meter_data, extract_new_meter_data
+from app.services.consumer_service import lookup_consumer
 from app.core.security import get_current_user
+
+class StartWorkOrderRequest(BaseModel):
+    dc: str
+    consumer_ivrs: str
 
 router = APIRouter()
 
@@ -143,6 +150,78 @@ DEMO_WORK_ORDERS = [
 ]
 
 
+@router.post('/start')
+def start_work_order(
+    payload: StartWorkOrderRequest,
+    user: dict = Depends(get_current_user)
+) -> dict:
+    """Validate DC + IVRS against master data, create a pre-populated work order session."""
+    consumer = lookup_consumer(payload.consumer_ivrs, payload.dc)
+    if consumer is None:
+        raise HTTPException(
+            status_code=404,
+            detail='Consumer not found. Please check the IVRS number and DC selection.'
+        )
+
+    work_order_id = f'wo_{uuid.uuid4().hex[:12]}'
+
+    # DC label map
+    dc_labels = {
+        'katara_hills': 'Katara Hills',
+        'shahpura_zone': 'Shahpura Zone',
+        'shakti_nagar': 'Shakti Nagar',
+        'vallabh_nagar_zone': 'Vallabh Nagar Zone',
+        'vidhya_nagar_zone': 'Vidhya Nagar Zone',
+    }
+
+    # Pre-populate session with DC + consumer master data
+    SESSION_STORE[work_order_id] = {
+        'status': 'in_progress',
+        'created_by': user.get('sub', 'unknown'),
+        'consumer_ivrs': payload.consumer_ivrs,
+        'current_step_id': 'gps_location',  # DC + IVRS already answered here
+        'answers': {
+            'dc': payload.dc,
+            'consumer_ivrs': payload.consumer_ivrs,
+            # DC master
+            'dc_code': consumer.get('dc_code', ''),
+            'circle': consumer.get('circle', ''),
+            'division': consumer.get('division', ''),
+            # Consumer master
+            'consumer_uid': consumer.get('consumer_uid', ''),
+            'consumer_name': consumer.get('consumer_name', ''),
+            'address': consumer.get('address', ''),
+            'connection_type': consumer.get('connection_type', ''),
+            'tariff_code': consumer.get('tariff_code', ''),
+            'sanctioned_load': consumer.get('sanctioned_load', ''),
+            'phase': consumer.get('phase', ''),
+            'dtr_name': consumer.get('dtr_name', ''),
+            'feeder_name': consumer.get('feeder_name', ''),
+            'old_meter_serial': consumer.get('old_meter_serial', ''),
+        },
+        'workOrderMeta': {
+            'workOrderNumber': work_order_id.upper(),
+            'consumerName': consumer.get('consumer_name', ''),
+            'consumerIvrs': payload.consumer_ivrs,
+            'address': consumer.get('address') or consumer.get('dtr_name', ''),
+            'dc': dc_labels.get(payload.dc, payload.dc),
+            'dcCode': consumer.get('dc_code', ''),
+            'phase': consumer.get('phase', ''),
+            'vendor': 'Demo Vendor Pvt Ltd',
+            'meterType': f"{consumer.get('phase', 'SINGLE').title()} Phase",
+        }
+    }
+
+    return {
+        'work_order_id': work_order_id,
+        'consumer_name': consumer.get('consumer_name', ''),
+        'address': consumer.get('address') or consumer.get('dtr_name', ''),
+        'phase': consumer.get('phase', ''),
+        'tariff_code': consumer.get('tariff_code', ''),
+        'sanctioned_load': consumer.get('sanctioned_load', ''),
+    }
+
+
 @router.get('/assigned')
 def get_assigned_work_orders(
     type: str,
@@ -164,15 +243,18 @@ def get_workflow(
     current_step_id = session.get('current_step_id')
     current_step = get_step_by_id(current_step_id) if current_step_id else get_first_step()
 
-    wo = next((w for w in DEMO_WORK_ORDERS if w['id'] == work_order_id), None)
-    meta = {
-        'workOrderNumber': wo['workOrderNumber'] if wo else '',
-        'consumerName': wo['customerName'] if wo else 'Unknown',
-        'consumerIvrs': wo.get('consumerIvrs', '') if wo else '',
-        'address': wo['address'] if wo else '',
-        'vendor': 'Demo Vendor Pvt Ltd',
-        'meterType': wo['meterType'] if wo else '',
-    }
+    # Use meta stored in session (set by /start) or fall back to demo work orders
+    meta = session.get('workOrderMeta')
+    if not meta:
+        wo = next((w for w in DEMO_WORK_ORDERS if w['id'] == work_order_id), None)
+        meta = {
+            'workOrderNumber': wo['workOrderNumber'] if wo else work_order_id.upper(),
+            'consumerName': wo['customerName'] if wo else 'Unknown',
+            'consumerIvrs': wo.get('consumerIvrs', '') if wo else '',
+            'address': wo['address'] if wo else '',
+            'vendor': 'Demo Vendor Pvt Ltd',
+            'meterType': wo['meterType'] if wo else '',
+        }
 
     return {
         'workOrderId': work_order_id,
