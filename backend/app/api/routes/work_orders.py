@@ -16,41 +16,30 @@ SESSION_STORE: dict[str, dict] = {}
 # DC master data – auto-populated when engineer selects DC
 # ---------------------------------------------------------------------------
 DC_MASTER: dict[str, dict] = {
-    'dc_noida_north': {
-        'dc_code': 'DCN-001', 'circle': 'Noida Circle', 'division': 'Division North',
-        'substation': 'Sector 12 Substation', 'substation_code': 'SS-12N',
-        'feeder': 'Feeder-N01', 'feeder_code': 'FN-01',
-        'unique_dt_code': 'DT-N-001', 'dt_name': 'DT Sector 12 North',
+    'katara_hills': {
+        'dc_code': '2304265',
+        'circle': 'City Circle Bhopal',
+        'division': 'Bhopal West',
     },
-    'dc_noida_south': {
-        'dc_code': 'DCN-002', 'circle': 'Noida Circle', 'division': 'Division South',
-        'substation': 'Sector 62 Substation', 'substation_code': 'SS-62S',
-        'feeder': 'Feeder-S02', 'feeder_code': 'FS-02',
-        'unique_dt_code': 'DT-S-002', 'dt_name': 'DT Sector 62 South',
+    'shahpura_zone': {
+        'dc_code': '2304202',
+        'circle': 'City Circle Bhopal',
+        'division': 'Bhopal West',
     },
-    'dc_gn_east': {
-        'dc_code': 'DCGN-001', 'circle': 'Greater Noida Circle', 'division': 'Division East',
-        'substation': 'Knowledge Park Substation', 'substation_code': 'SS-KP1',
-        'feeder': 'Feeder-GNE01', 'feeder_code': 'FGE-01',
-        'unique_dt_code': 'DT-GNE-001', 'dt_name': 'DT Knowledge Park East',
+    'shakti_nagar': {
+        'dc_code': '2304201',
+        'circle': 'City Circle Bhopal',
+        'division': 'Bhopal West',
     },
-    'dc_gn_west': {
-        'dc_code': 'DCGN-002', 'circle': 'Greater Noida Circle', 'division': 'Division West',
-        'substation': 'Sector Omega Substation', 'substation_code': 'SS-OMG',
-        'feeder': 'Feeder-GNW02', 'feeder_code': 'FGW-02',
-        'unique_dt_code': 'DT-GNW-002', 'dt_name': 'DT Omega Sector West',
+    'vallabh_nagar_zone': {
+        'dc_code': '2304204',
+        'circle': 'City Circle Bhopal',
+        'division': 'Bhopal West',
     },
-    'dc_ggn_central': {
-        'dc_code': 'DCGG-001', 'circle': 'Gurgaon Circle', 'division': 'Division Central',
-        'substation': 'Sector 45 Substation', 'substation_code': 'SS-45G',
-        'feeder': 'Feeder-GGC01', 'feeder_code': 'FGC-01',
-        'unique_dt_code': 'DT-GGC-001', 'dt_name': 'DT Sector 45 Central',
-    },
-    'dc_ggn_south': {
-        'dc_code': 'DCGG-002', 'circle': 'Gurgaon Circle', 'division': 'Division South',
-        'substation': 'Sohna Road Substation', 'substation_code': 'SS-SRG',
-        'feeder': 'Feeder-GGS02', 'feeder_code': 'FGS-02',
-        'unique_dt_code': 'DT-GGS-002', 'dt_name': 'DT Sohna Road South',
+    'vidhya_nagar_zone': {
+        'dc_code': '2304203',
+        'circle': 'City Circle Bhopal',
+        'division': 'Bhopal West',
     },
 }
 
@@ -118,37 +107,37 @@ DEMO_WORK_ORDERS = [
     {
         'id': 'wo_1',
         'workOrderNumber': 'WO1001',
-        'customerName': 'Amit Sharma',
-        'address': 'Sector 12, Noida',
+        'customerName': 'Sumukh Mishra',
+        'address': 'Amrit Home Phase-1, Katara Hills, Bhopal',
         'status': 'pending',
-        'scheduledDate': '2026-05-12',
-        'meterType': 'Single Phase',
+        'scheduledDate': '2026-05-13',
+        'meterType': 'Three Phase',
         'consumerIvrs': '1234567890',
-        'dcCode': 'dc_noida_north',
+        'dcCode': 'katara_hills',
         'type': 'meter_installation',
     },
     {
         'id': 'wo_2',
         'workOrderNumber': 'WO1002',
-        'customerName': 'Neha Verma',
-        'address': 'Greater Noida',
+        'customerName': 'Dinesh Sahu',
+        'address': 'Swami Vivekanand Nagar, Katara Hills, Bhopal',
         'status': 'pending',
-        'scheduledDate': '2026-05-12',
+        'scheduledDate': '2026-05-13',
         'meterType': 'Three Phase',
         'consumerIvrs': '9876543210',
-        'dcCode': 'dc_gn_east',
+        'dcCode': 'katara_hills',
         'type': 'meter_installation',
     },
     {
         'id': 'wo_3',
         'workOrderNumber': 'WO1003',
-        'customerName': 'Suresh Patel',
-        'address': 'Sector 45, Gurgaon',
+        'customerName': 'Vijay Singh',
+        'address': 'Rameshwaram C Sector, Shakti Nagar, Bhopal',
         'status': 'in_progress',
-        'scheduledDate': '2026-05-13',
+        'scheduledDate': '2026-05-14',
         'meterType': 'Single Phase',
         'consumerIvrs': '5555555555',
-        'dcCode': 'dc_ggn_central',
+        'dcCode': 'shakti_nagar',
         'type': 'meter_installation',
     },
 ]

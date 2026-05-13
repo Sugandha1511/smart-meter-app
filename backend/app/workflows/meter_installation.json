@@ -7,12 +7,11 @@
     "inputType": "select",
     "required": true,
     "options": [
-      { "labelEn": "DC Noida North",        "labelHi": "DC नोएडा नॉर्थ",      "value": "dc_noida_north"   },
-      { "labelEn": "DC Noida South",        "labelHi": "DC नोएडा साउथ",       "value": "dc_noida_south"   },
-      { "labelEn": "DC Greater Noida East", "labelHi": "DC ग्रेटर नोएडा ईस्ट","value": "dc_gn_east"       },
-      { "labelEn": "DC Greater Noida West", "labelHi": "DC ग्रेटर नोएडा वेस्ट","value": "dc_gn_west"       },
-      { "labelEn": "DC Gurgaon Central",    "labelHi": "DC गुड़गांव सेंट्रल",  "value": "dc_ggn_central"   },
-      { "labelEn": "DC Gurgaon South",      "labelHi": "DC गुड़गांव साउथ",     "value": "dc_ggn_south"     }
+      { "labelEn": "Katara Hills",       "labelHi": "कटारा हिल्स",        "value": "katara_hills"       },
+      { "labelEn": "Shahpura Zone",      "labelHi": "शाहपुरा ज़ोन",       "value": "shahpura_zone"      },
+      { "labelEn": "Shakti Nagar",       "labelHi": "शक्ति नगर",          "value": "shakti_nagar"       },
+      { "labelEn": "Vallabh Nagar Zone", "labelHi": "वल्लभ नगर ज़ोन",    "value": "vallabh_nagar_zone" },
+      { "labelEn": "Vidhya Nagar Zone",  "labelHi": "विद्या नगर ज़ोन",   "value": "vidhya_nagar_zone"  }
     ],
     "next": "consumer_ivrs"
   },
