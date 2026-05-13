@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login } from '../services/auth.service';
+import { warmupBackend } from '../services/api';
 
 function SnowflakeIcon() {
   return (
@@ -28,7 +29,15 @@ export default function LoginPage() {
   const [showPin, setShowPin] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [warming, setWarming] = useState(true);
   const [error, setError] = useState('');
+
+  // Wake up the Render backend as soon as the login page mounts
+  useEffect(() => {
+    warmupBackend();
+    const timer = setTimeout(() => setWarming(false), 5000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const onLogin = async () => {
     try {
@@ -113,8 +122,8 @@ export default function LoginPage() {
 
         {error && <div style={{ color: '#dc2626', fontSize: 13 }}>{error}</div>}
 
-        <button className="login-btn" onClick={() => void onLogin()} disabled={loading}>
-          {loading ? 'Please wait...' : 'Login'}
+        <button className="login-btn" onClick={() => void onLogin()} disabled={loading || warming}>
+          {loading ? 'Please wait...' : warming ? '⏳ Starting server...' : 'Login'}
         </button>
       </div>
     </div>
